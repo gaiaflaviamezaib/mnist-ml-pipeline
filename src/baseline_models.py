@@ -16,7 +16,7 @@ def run_pca_logreg(X_train, y_train, X_test, y_test, n_components: int = 50, see
     X_train_pca = pca.fit_transform(X_train)
     X_test_pca = pca.transform(X_test)
 
-    clf = LogisticRegression(max_iter=1000, multi_class="multinomial")
+    clf = LogisticRegression(max_iter=1000)
     clf.fit(X_train_pca, y_train)
     y_pred = clf.predict(X_test_pca)
 

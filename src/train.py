@@ -126,12 +126,15 @@ RUNNERS = {
     "cnn_torch": run_cnn_torch,
     "cnn_tf": run_cnn_tf,
 }
+CLASSICAL_MODELS = {"logreg", "kmeans"}  # no training epochs
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", required=True, choices=list(RUNNERS))
     parser.add_argument("--epochs", type=int, default=None)
     args = parser.parse_args()
+    if args.epochs is not None and args.model in CLASSICAL_MODELS:
+        parser.error(f"--epochs only applies to neural models, not '{args.model}'")
 
     X_train, y_train, X_test, y_test = load_mnist_arrays()
     print(f"Loaded MNIST: train={X_train.shape}, test={X_test.shape}")

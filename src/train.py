@@ -9,19 +9,35 @@ from sklearn.metrics import accuracy_score, confusion_matrix
 from src.data import flatten, load_mnist_arrays
 
 
-def run_logreg(X_train, y_train, X_test, y_test):
+def set_seed(seed: int, model: str):
+    """Seed numpy plus whichever framework the chosen model uses, so reruns match."""
+    import random
+
+    random.seed(seed)
+    np.random.seed(seed)
+    if model.endswith("_torch"):
+        import torch
+
+        torch.manual_seed(seed)
+    elif model.endswith("_tf"):
+        import tensorflow as tf
+
+        tf.keras.utils.set_random_seed(seed)
+
+
+def run_logreg(X_train, y_train, X_test, y_test, seed=0):
     from src.baseline_models import run_pca_logreg
 
-    result = run_pca_logreg(flatten(X_train), y_train, flatten(X_test), y_test)
+    result = run_pca_logreg(flatten(X_train), y_train, flatten(X_test), y_test, seed=seed)
     print(f"[PCA + LogReg] accuracy={result['accuracy']:.3f}  "
           f"pca_explained_variance={result['pca_explained_variance']:.3f}")
     print(f"confusion matrix:\n{result['confusion_matrix']}")
 
 
-def run_kmeans(X_train, y_train, X_test, y_test):
+def run_kmeans(X_train, y_train, X_test, y_test, seed=0):
     from src.baseline_models import run_kmeans as _run_kmeans
 
-    result = _run_kmeans(flatten(X_train), y_train, flatten(X_test), y_test)
+    result = _run_kmeans(flatten(X_train), y_train, flatten(X_test), y_test, seed=seed)
     print(f"[K-means] cluster-label agreement={result['cluster_label_agreement']:.3f}")
     print(f"confusion matrix:\n{result['confusion_matrix']}")
 
@@ -132,12 +148,16 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", required=True, choices=list(RUNNERS))
     parser.add_argument("--epochs", type=int, default=None)
+    parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
     if args.epochs is not None and args.model in CLASSICAL_MODELS:
         parser.error(f"--epochs only applies to neural models, not '{args.model}'")
 
+    set_seed(args.seed, args.model)
     X_train, y_train, X_test, y_test = load_mnist_arrays()
     print(f"Loaded MNIST: train={X_train.shape}, test={X_test.shape}")
 
     kwargs = {"epochs": args.epochs} if args.epochs is not None else {}
+    if args.model in CLASSICAL_MODELS:
+        kwargs["seed"] = args.seed
     RUNNERS[args.model](X_train, y_train, X_test, y_test, **kwargs)

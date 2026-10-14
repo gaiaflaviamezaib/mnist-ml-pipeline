@@ -34,6 +34,9 @@ python -m src.train --model mlp_tf --epochs 15
 # CNN
 python -m src.train --model cnn_torch --epochs 10
 python -m src.train --model cnn_tf --epochs 10
+
+# Learning curve for all models (saved to results/)
+python -m src.learning_curve
 ```
 
 Every run is seeded (`--seed`, default 0), so rerunning a command gives the same numbers. Run the test suite with `python -m pytest`.
@@ -51,6 +54,8 @@ src/
   cnn_torch.py        # small CNN in PyTorch
   cnn_tf.py           # small CNN in TensorFlow/Keras
   train.py            # CLI entry point, shared eval/reporting
+  learning_curve.py   # accuracy vs. training-set size for each model
+results/              # learning-curve CSV and plot
 notebooks/
   01_eda_pca.ipynb     # digit visualization + PCA scree plot + k-means cluster purity
 ```
@@ -70,8 +75,20 @@ Full MNIST (60,000 train / 10,000 test), default settings from the Usage section
 
 50 PCA components keep 82.5% of the pixel variance. The same architecture lands within 0.2 points across PyTorch and TensorFlow, and the CNN cuts the MLP's error roughly in half.
 
+## Learning curve
+
+Each model trained on nested random subsets of the training set (500 to 60,000 images), default settings, `--seed 0`, evaluated on the full test set. Numbers are in [results/learning_curve.csv](results/learning_curve.csv).
+
+![Learning curves](results/learning_curve.png)
+
+- PCA + logistic regression levels off at about 91% from 20,000 images: more data no longer helps, so the linear model on 50 components is likely the limit.
+- K-means stays between 55% and 60% whatever the size, since it never uses the labels to fit.
+- The CNNs pass the MLPs from about 2,000 images. With 10,000 images they already reach 97.4 to 97.8%, about what the MLPs get with all 60,000.
+- With only 500 images the PyTorch CNN is the weakest neural model (78.1%). Epochs are fixed, so small subsets get very few training steps.
+
+The 60,000-image points come from a shuffled copy of the training set, so k-means and the TensorFlow models land a few tenths of a point away from the results table above.
+
 ## Next steps
 
 - Look at which digits the PCA+logreg baseline confuses that the CNN doesn't (and why; usually 4/9 and 3/5/8)
 - Try the same pipeline on Fashion-MNIST to see how much of the accuracy gap holds on a harder dataset
-- Add a learning-curve plot (accuracy vs. training-set size) for each model

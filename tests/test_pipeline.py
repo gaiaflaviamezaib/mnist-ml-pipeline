@@ -78,3 +78,21 @@ def test_cli_rejects_epochs_for_classical_models():
     )
     assert result.returncode == 2
     assert "--epochs only applies to neural models" in result.stderr
+
+
+def test_runners_return_test_accuracy():
+    from src.train import run_kmeans, run_logreg
+
+    X, y = make_digits()
+    assert run_logreg(X, y, X, y) > 0.95
+    assert 0 <= run_kmeans(X, y, X, y) <= 1
+
+
+def test_learning_curve_subsets_are_nested():
+    from src.learning_curve import nested_subsets
+
+    subsets = nested_subsets(1000, [10, 100, 1000], seed=0)
+    assert [len(subsets[s]) for s in (10, 100, 1000)] == [10, 100, 1000]
+    assert set(subsets[10]) <= set(subsets[100]) <= set(subsets[1000])
+    assert len(set(subsets[1000])) == 1000  # no repeated images
+    assert (nested_subsets(1000, [100], seed=0)[100] == subsets[100]).all()

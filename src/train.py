@@ -1,5 +1,8 @@
 """CLI entry point:
 python -m src.train --model {logreg,kmeans,mlp_torch,mlp_tf,cnn_torch,cnn_tf}
+
+Each runner prints its results and returns the test accuracy
+(cluster-label agreement for k-means).
 """
 import argparse
 
@@ -32,6 +35,7 @@ def run_logreg(X_train, y_train, X_test, y_test, seed=0):
     print(f"[PCA + LogReg] accuracy={result['accuracy']:.3f}  "
           f"pca_explained_variance={result['pca_explained_variance']:.3f}")
     print(f"confusion matrix:\n{result['confusion_matrix']}")
+    return result["accuracy"]
 
 
 def run_kmeans(X_train, y_train, X_test, y_test, seed=0):
@@ -40,6 +44,7 @@ def run_kmeans(X_train, y_train, X_test, y_test, seed=0):
     result = _run_kmeans(flatten(X_train), y_train, flatten(X_test), y_test, seed=seed)
     print(f"[K-means] cluster-label agreement={result['cluster_label_agreement']:.3f}")
     print(f"confusion matrix:\n{result['confusion_matrix']}")
+    return result["cluster_label_agreement"]
 
 
 def run_mlp_torch(X_train, y_train, X_test, y_test, epochs=15, lr=1e-3, batch_size=128):
@@ -56,7 +61,7 @@ def run_mlp_torch(X_train, y_train, X_test, y_test, epochs=15, lr=1e-3, batch_si
                           batch_size=batch_size)
 
     model = MLPTorch().to(device)
-    _train_torch_model(model, train_dl, test_dl, device, epochs, lr)
+    return _train_torch_model(model, train_dl, test_dl, device, epochs, lr)
 
 
 def run_cnn_torch(X_train, y_train, X_test, y_test, epochs=10, lr=1e-3, batch_size=128):
@@ -73,7 +78,7 @@ def run_cnn_torch(X_train, y_train, X_test, y_test, epochs=10, lr=1e-3, batch_si
                           batch_size=batch_size)
 
     model = CNNTorch().to(device)
-    _train_torch_model(model, train_dl, test_dl, device, epochs, lr)
+    return _train_torch_model(model, train_dl, test_dl, device, epochs, lr)
 
 
 def _train_torch_model(model, train_dl, test_dl, device, epochs, lr):
@@ -103,20 +108,21 @@ def _train_torch_model(model, train_dl, test_dl, device, epochs, lr):
             print(f"epoch {epoch + 1}/{epochs}  test_acc={acc:.3f}")
 
     print(f"confusion matrix:\n{confusion_matrix(np.concatenate(targets), np.concatenate(preds))}")
+    return acc
 
 
 def run_mlp_tf(X_train, y_train, X_test, y_test, epochs=15, lr=1e-3, batch_size=128):
     from src.mlp_tf import build_mlp_tf
 
     model = build_mlp_tf()
-    _train_tf_model(model, flatten(X_train), y_train, flatten(X_test), y_test, epochs, lr, batch_size)
+    return _train_tf_model(model, flatten(X_train), y_train, flatten(X_test), y_test, epochs, lr, batch_size)
 
 
 def run_cnn_tf(X_train, y_train, X_test, y_test, epochs=10, lr=1e-3, batch_size=128):
     from src.cnn_tf import build_cnn_tf
 
     model = build_cnn_tf()
-    _train_tf_model(model, X_train[..., None], y_train, X_test[..., None], y_test, epochs, lr, batch_size)
+    return _train_tf_model(model, X_train[..., None], y_train, X_test[..., None], y_test, epochs, lr, batch_size)
 
 
 def _train_tf_model(model, X_train, y_train, X_test, y_test, epochs, lr, batch_size):
@@ -130,8 +136,9 @@ def _train_tf_model(model, X_train, y_train, X_test, y_test, epochs, lr, batch_s
     model.fit(X_train, y_train, validation_data=(X_test, y_test),
               epochs=epochs, batch_size=batch_size, verbose=2)
 
-    preds = model.predict(X_test).argmax(1)
+    preds = model.predict(X_test, verbose=0).argmax(1)
     print(f"confusion matrix:\n{confusion_matrix(y_test, preds)}")
+    return accuracy_score(y_test, preds)
 
 
 RUNNERS = {

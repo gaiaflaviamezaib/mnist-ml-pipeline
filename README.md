@@ -37,6 +37,9 @@ python -m src.train --model cnn_tf --epochs 10
 
 # Learning curve for all models (saved to results/)
 python -m src.learning_curve
+
+# Where PCA + logreg goes wrong vs. the CNN (saved to results/)
+python -m src.compare_errors
 ```
 
 Every run is seeded (`--seed`, default 0), so rerunning a command gives the same numbers. Run the test suite with `python -m pytest`.
@@ -55,7 +58,8 @@ src/
   cnn_tf.py           # small CNN in TensorFlow/Keras
   train.py            # CLI entry point, shared eval/reporting
   learning_curve.py   # accuracy vs. training-set size for each model
-results/              # learning-curve CSV and plot
+  compare_errors.py   # most frequent confusions, PCA + logreg vs. CNN
+results/              # learning-curve and confusion CSVs and plots
 notebooks/
   01_eda_pca.ipynb     # digit visualization + PCA scree plot + k-means cluster purity
 ```
@@ -88,7 +92,27 @@ Each model trained on nested random subsets of the training set (500 to 60,000 i
 
 The 60,000-image points come from a shuffled copy of the training set, so k-means and the TensorFlow models land a few tenths of a point away from the results table above.
 
+## Where the baseline goes wrong
+
+Error matrices (correct predictions left out) for PCA + logistic regression and the PyTorch CNN, both trained on the full training set with `--seed 0`. The 15 most frequent baseline confusions are in [results/confusions.csv](results/confusions.csv).
+
+![Error matrices](results/confusions.png)
+
+| True | Predicted | PCA + logreg | CNN |
+|---|---|---|---|
+| 5 | 3 | 47 | 6 |
+| 2 | 8 | 41 | 1 |
+| 9 | 4 | 37 | 11 |
+| 4 | 9 | 35 | 1 |
+| 8 | 3 | 33 | 2 |
+| 8 | 5 | 33 | 1 |
+| 5 | 8 | 32 | 0 |
+| 3 | 5 | 32 | 3 |
+| 7 | 9 | 30 | 5 |
+| 7 | 2 | 29 | 3 |
+
+The baseline's 10 most common mistakes add up to 349 errors (out of 883); the CNN makes 33 on the same pairs. As expected, they are mostly 4/9 and the 3/5/8 group. These digits share most of their pixels and differ in small local details (whether the top of a 4 is closed, which loops of an 8 are open), which 50 global PCA components probably blur, while convolution filters look at local strokes. 9 read as 4 is still the CNN's most frequent mistake.
+
 ## Next steps
 
-- Look at which digits the PCA+logreg baseline confuses that the CNN doesn't (and why; usually 4/9 and 3/5/8)
 - Try the same pipeline on Fashion-MNIST to see how much of the accuracy gap holds on a harder dataset

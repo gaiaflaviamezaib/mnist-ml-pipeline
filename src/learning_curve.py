@@ -75,7 +75,7 @@ def main():
             set_seed(args.seed, model)
             kwargs = {"seed": args.seed} if model in CLASSICAL_MODELS else {}
             start = time.time()
-            acc = RUNNERS[model](X_train[idx], y_train[idx], X_test, y_test, **kwargs)
+            acc = RUNNERS[model](X_train[idx], y_train[idx], X_test, y_test, **kwargs)["accuracy"]
             rows.append({"model": model, "train_size": size, "accuracy": round(float(acc), 4),
                          "seconds": round(time.time() - start, 1)})
             print(f"== {model} n={size}: accuracy={acc:.4f}")

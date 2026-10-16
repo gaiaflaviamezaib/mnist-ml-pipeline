@@ -84,8 +84,10 @@ def test_runners_return_test_accuracy():
     from src.train import run_kmeans, run_logreg
 
     X, y = make_digits()
-    assert run_logreg(X, y, X, y) > 0.95
-    assert 0 <= run_kmeans(X, y, X, y) <= 1
+    result = run_logreg(X, y, X, y)
+    assert result["accuracy"] > 0.95
+    assert result["confusion_matrix"].shape == (10, 10)
+    assert 0 <= run_kmeans(X, y, X, y)["accuracy"] <= 1
 
 
 def test_learning_curve_subsets_are_nested():
@@ -96,3 +98,12 @@ def test_learning_curve_subsets_are_nested():
     assert set(subsets[10]) <= set(subsets[100]) <= set(subsets[1000])
     assert len(set(subsets[1000])) == 1000  # no repeated images
     assert (nested_subsets(1000, [100], seed=0)[100] == subsets[100]).all()
+
+
+def test_top_confusions_ignores_correct_predictions():
+    from src.compare_errors import top_confusions
+
+    cm = np.diag(np.full(10, 50))
+    cm[4, 9], cm[9, 4], cm[3, 5] = 7, 3, 5
+    assert top_confusions(cm, k=2) == [(4, 9, 7), (3, 5, 5)]
+    assert top_confusions(cm, k=10) == [(4, 9, 7), (3, 5, 5), (9, 4, 3)]

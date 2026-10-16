@@ -1,8 +1,8 @@
 """CLI entry point:
 python -m src.train --model {logreg,kmeans,mlp_torch,mlp_tf,cnn_torch,cnn_tf}
 
-Each runner prints its results and returns the test accuracy
-(cluster-label agreement for k-means).
+Each runner prints its results and returns {"accuracy", "confusion_matrix"}
+on the test set (accuracy is the cluster-label agreement for k-means).
 """
 import argparse
 
@@ -35,7 +35,7 @@ def run_logreg(X_train, y_train, X_test, y_test, seed=0):
     print(f"[PCA + LogReg] accuracy={result['accuracy']:.3f}  "
           f"pca_explained_variance={result['pca_explained_variance']:.3f}")
     print(f"confusion matrix:\n{result['confusion_matrix']}")
-    return result["accuracy"]
+    return {"accuracy": result["accuracy"], "confusion_matrix": result["confusion_matrix"]}
 
 
 def run_kmeans(X_train, y_train, X_test, y_test, seed=0):
@@ -44,7 +44,7 @@ def run_kmeans(X_train, y_train, X_test, y_test, seed=0):
     result = _run_kmeans(flatten(X_train), y_train, flatten(X_test), y_test, seed=seed)
     print(f"[K-means] cluster-label agreement={result['cluster_label_agreement']:.3f}")
     print(f"confusion matrix:\n{result['confusion_matrix']}")
-    return result["cluster_label_agreement"]
+    return {"accuracy": result["cluster_label_agreement"], "confusion_matrix": result["confusion_matrix"]}
 
 
 def run_mlp_torch(X_train, y_train, X_test, y_test, epochs=15, lr=1e-3, batch_size=128):
@@ -107,8 +107,9 @@ def _train_torch_model(model, train_dl, test_dl, device, epochs, lr):
             acc = accuracy_score(np.concatenate(targets), np.concatenate(preds))
             print(f"epoch {epoch + 1}/{epochs}  test_acc={acc:.3f}")
 
-    print(f"confusion matrix:\n{confusion_matrix(np.concatenate(targets), np.concatenate(preds))}")
-    return acc
+    cm = confusion_matrix(np.concatenate(targets), np.concatenate(preds))
+    print(f"confusion matrix:\n{cm}")
+    return {"accuracy": acc, "confusion_matrix": cm}
 
 
 def run_mlp_tf(X_train, y_train, X_test, y_test, epochs=15, lr=1e-3, batch_size=128):
@@ -137,8 +138,9 @@ def _train_tf_model(model, X_train, y_train, X_test, y_test, epochs, lr, batch_s
               epochs=epochs, batch_size=batch_size, verbose=2)
 
     preds = model.predict(X_test, verbose=0).argmax(1)
-    print(f"confusion matrix:\n{confusion_matrix(y_test, preds)}")
-    return accuracy_score(y_test, preds)
+    cm = confusion_matrix(y_test, preds)
+    print(f"confusion matrix:\n{cm}")
+    return {"accuracy": accuracy_score(y_test, preds), "confusion_matrix": cm}
 
 
 RUNNERS = {

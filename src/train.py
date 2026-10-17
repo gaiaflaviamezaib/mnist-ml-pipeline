@@ -9,7 +9,7 @@ import argparse
 import numpy as np
 from sklearn.metrics import accuracy_score, confusion_matrix
 
-from src.data import flatten, load_mnist_arrays
+from src.data import DATASETS, flatten, load_mnist_arrays
 
 
 def set_seed(seed: int, model: str):
@@ -158,13 +158,14 @@ if __name__ == "__main__":
     parser.add_argument("--model", required=True, choices=list(RUNNERS))
     parser.add_argument("--epochs", type=int, default=None)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--dataset", default="mnist", choices=list(DATASETS))
     args = parser.parse_args()
     if args.epochs is not None and args.model in CLASSICAL_MODELS:
         parser.error(f"--epochs only applies to neural models, not '{args.model}'")
 
     set_seed(args.seed, args.model)
-    X_train, y_train, X_test, y_test = load_mnist_arrays()
-    print(f"Loaded MNIST: train={X_train.shape}, test={X_test.shape}")
+    X_train, y_train, X_test, y_test = load_mnist_arrays(args.dataset)
+    print(f"Loaded {args.dataset}: train={X_train.shape}, test={X_test.shape}")
 
     kwargs = {"epochs": args.epochs} if args.epochs is not None else {}
     if args.model in CLASSICAL_MODELS:

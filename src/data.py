@@ -2,17 +2,23 @@
 
 Everything downstream (sklearn baselines, PyTorch, TensorFlow) works off the
 same X_train/X_test/y_train/y_test split so accuracy numbers are comparable.
+Fashion-MNIST has the same format, so it can be swapped in with dataset="fashion".
 """
 import numpy as np
 
+DATASETS = {"mnist": "MNIST", "fashion": "FashionMNIST"}  # name -> torchvision class
 
-def load_mnist_arrays():
+
+def load_mnist_arrays(dataset: str = "mnist"):
     """Returns (X_train, y_train, X_test, y_test) as float32 in [0, 1],
     shape (n, 28, 28), via torchvision (downloads to ./data on first call)."""
+    if dataset not in DATASETS:
+        raise ValueError(f"unknown dataset {dataset!r}, expected one of {list(DATASETS)}")
     from torchvision import datasets
 
-    train = datasets.MNIST(root="data", train=True, download=True)
-    test = datasets.MNIST(root="data", train=False, download=True)
+    cls = getattr(datasets, DATASETS[dataset])
+    train = cls(root="data", train=True, download=True)
+    test = cls(root="data", train=False, download=True)
 
     X_train = train.data.numpy().astype(np.float32) / 255.0
     y_train = train.targets.numpy().astype(np.int64)

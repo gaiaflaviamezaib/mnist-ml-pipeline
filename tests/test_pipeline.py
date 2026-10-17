@@ -107,3 +107,10 @@ def test_top_confusions_ignores_correct_predictions():
     cm[4, 9], cm[9, 4], cm[3, 5] = 7, 3, 5
     assert top_confusions(cm, k=2) == [(4, 9, 7), (3, 5, 5)]
     assert top_confusions(cm, k=10) == [(4, 9, 7), (3, 5, 5), (9, 4, 3)]
+
+
+def test_unknown_dataset_is_rejected():
+    from src.data import load_mnist_arrays
+
+    with pytest.raises(ValueError):
+        load_mnist_arrays("cifar")

@@ -40,6 +40,9 @@ python -m src.learning_curve
 
 # Where PCA + logreg goes wrong vs. the CNN (saved to results/)
 python -m src.compare_errors
+
+# Any model on Fashion-MNIST instead
+python -m src.train --model cnn_torch --dataset fashion
 ```
 
 Every run is seeded (`--seed`, default 0), so rerunning a command gives the same numbers. Run the test suite with `python -m pytest`.
@@ -113,6 +116,20 @@ Error matrices (correct predictions left out) for PCA + logistic regression and 
 
 The baseline's 10 most common mistakes add up to 349 errors (out of 883); the CNN makes 33 on the same pairs. As expected, they are mostly 4/9 and the 3/5/8 group. These digits share most of their pixels and differ in small local details (whether the top of a 4 is closed, which loops of an 8 are open), which 50 global PCA components probably blur, while convolution filters look at local strokes. 9 read as 4 is still the CNN's most frequent mistake.
 
-## Next steps
+## Fashion-MNIST
 
-- Try the same pipeline on Fashion-MNIST to see how much of the accuracy gap holds on a harder dataset
+Same models and settings (`--dataset fashion`, `--seed 0`) on [Fashion-MNIST](https://github.com/zalandoresearch/fashion-mnist): 28x28 grayscale images of 10 kinds of clothing and shoes, same size as MNIST.
+
+| Model | MNIST | Fashion-MNIST |
+|---|---|---|
+| PCA (50 components) + logistic regression | 91.2% | 82.8% |
+| K-means, k=10 (cluster-label agreement) | 59.3% | 55.9% |
+| MLP (PyTorch), 15 epochs | 97.8% | 88.5% |
+| MLP (TensorFlow), 15 epochs | 97.8% | 87.3% |
+| CNN (PyTorch), 10 epochs | 98.9% | 90.4% |
+| CNN (TensorFlow), 10 epochs | 98.7% | 90.3% |
+
+- Every model drops, the neural ones by 8 to 11 points.
+- The CNN still beats the MLP, but by less: on MNIST it roughly halves the MLP's error (2.2% to 1.1%), on Fashion-MNIST it goes from 11.5 to 12.7% down to 9.6 to 9.7%.
+- The hardest class for the PyTorch CNN is "shirt" (775 of 1,000 correct), mostly mistaken for T-shirt/top (99), coat (45) or pullover (32). These classes probably look too alike at 28x28.
+- 50 PCA components keep 86.3% of the pixel variance here, more than on MNIST (82.5%), but logistic regression still loses 8 points, which suggests the classes are harder to separate linearly rather than harder to compress.

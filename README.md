@@ -41,8 +41,9 @@ python -m src.learning_curve
 # Where PCA + logreg goes wrong vs. the CNN (saved to results/)
 python -m src.compare_errors
 
-# Any model on Fashion-MNIST instead
+# Any model or script on Fashion-MNIST instead
 python -m src.train --model cnn_torch --dataset fashion
+python -m src.learning_curve --dataset fashion
 ```
 
 Every run is seeded (`--seed`, default 0), so rerunning a command gives the same numbers. Run the test suite with `python -m pytest`.
@@ -133,3 +134,15 @@ Same models and settings (`--dataset fashion`, `--seed 0`) on [Fashion-MNIST](ht
 - The CNN still beats the MLP, but by less: on MNIST it roughly halves the MLP's error (2.2% to 1.1%), on Fashion-MNIST it goes from 11.5 to 12.7% down to 9.6 to 9.7%.
 - The hardest class for the PyTorch CNN is "shirt" (775 of 1,000 correct), mostly mistaken for T-shirt/top (99), coat (45) or pullover (32). These classes probably look too alike at 28x28.
 - 50 PCA components keep 86.3% of the pixel variance here, more than on MNIST (82.5%), but logistic regression still loses 8 points, which suggests the classes are harder to separate linearly rather than harder to compress.
+
+### Fashion-MNIST learning curve
+
+Same setup as the MNIST learning curve. Numbers are in [results/learning_curve_fashion.csv](results/learning_curve_fashion.csv).
+
+![Fashion-MNIST learning curves](results/learning_curve_fashion.png)
+
+- The CNNs need more data to pay off than on MNIST: they only pass the MLPs between 5,000 and 10,000 images (on MNIST it was about 2,000).
+- With 500 images PCA + logistic regression is the best model (77.5%) and the PyTorch CNN the weakest neural one (66.6%).
+- Logistic regression levels off at about 83% from 10,000 images, while the CNNs are still improving at 60,000 (88.4 to 91.1% for PyTorch between 20,000 and 60,000).
+
+As on MNIST, the 60,000-image points use a shuffled training order, so they differ a little from the table above (up to 0.7 points for the neural models, 2.2 for k-means).

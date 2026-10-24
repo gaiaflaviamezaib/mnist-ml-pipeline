@@ -27,6 +27,11 @@ def load_mnist_arrays(dataset: str = "mnist"):
     return X_train, y_train, X_test, y_test
 
 
+def results_stem(name: str, dataset: str) -> str:
+    """File name for a results file: MNIST keeps the plain name, others get a suffix."""
+    return name if dataset == "mnist" else f"{name}_{dataset}"
+
+
 def flatten(X: np.ndarray) -> np.ndarray:
     """(n, 28, 28) -> (n, 784), for the PCA/logreg/k-means baselines."""
     return X.reshape(X.shape[0], -1)

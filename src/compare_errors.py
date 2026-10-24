@@ -12,7 +12,7 @@ from pathlib import Path
 
 import numpy as np
 
-from src.data import load_mnist_arrays
+from src.data import DATASETS, load_mnist_arrays, results_stem
 from src.train import RUNNERS, set_seed
 
 RESULTS_DIR = Path("results")
@@ -27,7 +27,7 @@ def top_confusions(cm: np.ndarray, k: int = 10):
             for t, p in zip(*np.unravel_index(order, errors.shape)) if errors[t, p] > 0]
 
 
-def plot(cms: dict, out_path: Path):
+def plot(cms: dict, out_path: Path, unit: str = "digit"):
     import matplotlib
 
     matplotlib.use("Agg")
@@ -43,8 +43,8 @@ def plot(cms: dict, out_path: Path):
                 if err[t, p]:
                     ax.text(p, t, err[t, p], ha="center", va="center", fontsize=7)
         ax.set_title(f"{name}: {err.sum()} errors")
-        ax.set_xlabel("Predicted digit")
-        ax.set_ylabel("True digit")
+        ax.set_xlabel(f"Predicted {unit}")
+        ax.set_ylabel(f"True {unit}")
         ax.set_xticks(range(10))
         ax.set_yticks(range(10))
     fig.colorbar(im, ax=axes, shrink=0.8)
@@ -54,9 +54,10 @@ def plot(cms: dict, out_path: Path):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--dataset", default="mnist", choices=list(DATASETS))
     args = parser.parse_args()
 
-    X_train, y_train, X_test, y_test = load_mnist_arrays()
+    X_train, y_train, X_test, y_test = load_mnist_arrays(args.dataset)
     cms = {}
     for model, label in [("logreg", "PCA + logistic regression"), ("cnn_torch", "CNN (PyTorch)")]:
         set_seed(args.seed, model)
@@ -65,12 +66,13 @@ def main():
 
     (logreg_label, logreg_cm), (cnn_label, cnn_cm) = cms.items()
     RESULTS_DIR.mkdir(exist_ok=True)
-    with open(RESULTS_DIR / "confusions.csv", "w", newline="") as f:
+    stem = RESULTS_DIR / results_stem("confusions", args.dataset)
+    with open(stem.with_suffix(".csv"), "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["true", "predicted", "logreg_errors", "cnn_errors"])
         for t, p, n in top_confusions(logreg_cm, k=15):
             writer.writerow([t, p, n, int(cnn_cm[t, p])])
-    plot(cms, RESULTS_DIR / "confusions.png")
+    plot(cms, stem.with_suffix(".png"), "digit" if args.dataset == "mnist" else "class")
 
     print("\nMost frequent PCA + logreg confusions (true -> predicted: logreg / CNN)")
     for t, p, n in top_confusions(logreg_cm, k=10):

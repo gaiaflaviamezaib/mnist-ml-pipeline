@@ -2,11 +2,13 @@
 
 python -m src.learning_curve                      # all models, default sizes
 python -m src.learning_curve --models logreg cnn_torch --sizes 500 5000 60000
+python -m src.learning_curve --dataset fashion
 
 Each model is trained with its default settings on nested random subsets of
 the 60,000 training images (every smaller subset is contained in the larger
 ones) and always evaluated on the full 10,000-image test set. Results are saved
-to results/learning_curve.csv and results/learning_curve.png.
+to results/learning_curve.csv and results/learning_curve.png
+(learning_curve_fashion.* for Fashion-MNIST).
 """
 import argparse
 import csv
@@ -15,7 +17,7 @@ from pathlib import Path
 
 import numpy as np
 
-from src.data import load_mnist_arrays
+from src.data import DATASETS, load_mnist_arrays, results_stem
 from src.train import CLASSICAL_MODELS, RUNNERS, set_seed
 
 DEFAULT_SIZES = [500, 1000, 2000, 5000, 10000, 20000, 60000]
@@ -36,7 +38,7 @@ def nested_subsets(n_total: int, sizes, seed: int = 0):
     return {size: order[:size] for size in sizes}
 
 
-def plot(rows, out_path: Path):
+def plot(rows, out_path: Path, title: str = "MNIST learning curves"):
     import matplotlib
 
     matplotlib.use("Agg")
@@ -51,7 +53,7 @@ def plot(rows, out_path: Path):
     ax.set_xscale("log")
     ax.set_xlabel("Training images (log scale)")
     ax.set_ylabel("Test accuracy (%)")
-    ax.set_title("MNIST learning curves")
+    ax.set_title(title)
     ax.grid(True, which="both", alpha=0.3)
     ax.legend(fontsize=8)
     fig.tight_layout()
@@ -63,9 +65,10 @@ def main():
     parser.add_argument("--models", nargs="+", default=list(RUNNERS), choices=list(RUNNERS))
     parser.add_argument("--sizes", nargs="+", type=int, default=DEFAULT_SIZES)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--dataset", default="mnist", choices=list(DATASETS))
     args = parser.parse_args()
 
-    X_train, y_train, X_test, y_test = load_mnist_arrays()
+    X_train, y_train, X_test, y_test = load_mnist_arrays(args.dataset)
     subsets = nested_subsets(len(X_train), sorted(args.sizes), args.seed)
     RESULTS_DIR.mkdir(exist_ok=True)
 
@@ -80,12 +83,14 @@ def main():
                          "seconds": round(time.time() - start, 1)})
             print(f"== {model} n={size}: accuracy={acc:.4f}")
 
-    with open(RESULTS_DIR / "learning_curve.csv", "w", newline="") as f:
+    stem = RESULTS_DIR / results_stem("learning_curve", args.dataset)
+    with open(stem.with_suffix(".csv"), "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=["model", "train_size", "accuracy", "seconds"])
         writer.writeheader()
         writer.writerows(rows)
-    plot(rows, RESULTS_DIR / "learning_curve.png")
-    print(f"Saved {RESULTS_DIR / 'learning_curve.csv'} and {RESULTS_DIR / 'learning_curve.png'}")
+    title = "MNIST learning curves" if args.dataset == "mnist" else "Fashion-MNIST learning curves"
+    plot(rows, stem.with_suffix(".png"), title)
+    print(f"Saved {stem.with_suffix('.csv')} and {stem.with_suffix('.png')}")
 
 
 if __name__ == "__main__":

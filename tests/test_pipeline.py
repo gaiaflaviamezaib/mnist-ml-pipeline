@@ -114,3 +114,10 @@ def test_unknown_dataset_is_rejected():
 
     with pytest.raises(ValueError):
         load_mnist_arrays("cifar")
+
+
+def test_results_stem_keeps_mnist_names():
+    from src.data import results_stem
+
+    assert results_stem("learning_curve", "mnist") == "learning_curve"
+    assert results_stem("confusions", "fashion") == "confusions_fashion"

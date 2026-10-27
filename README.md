@@ -44,6 +44,7 @@ python -m src.compare_errors
 # Any model or script on Fashion-MNIST instead
 python -m src.train --model cnn_torch --dataset fashion
 python -m src.learning_curve --dataset fashion
+python -m src.compare_errors --dataset fashion
 ```
 
 Every run is seeded (`--seed`, default 0), so rerunning a command gives the same numbers. Run the test suite with `python -m pytest`.
@@ -146,3 +147,26 @@ Same setup as the MNIST learning curve. Numbers are in [results/learning_curve_f
 - Logistic regression levels off at about 83% from 10,000 images, while the CNNs are still improving at 60,000 (88.4 to 91.1% for PyTorch between 20,000 and 60,000).
 
 As on MNIST, the 60,000-image points use a shuffled training order, so they differ a little from the table above (up to 0.7 points for the neural models, 2.2 for k-means).
+
+### Where the baseline goes wrong on Fashion-MNIST
+
+Same comparison as for MNIST (`python -m src.compare_errors --dataset fashion`). Class numbers in the plot: 0 T-shirt/top, 1 trouser, 2 pullover, 3 dress, 4 coat, 5 sandal, 6 shirt, 7 sneaker, 8 bag, 9 ankle boot. The 15 most frequent baseline confusions are in [results/confusions_fashion.csv](results/confusions_fashion.csv).
+
+![Fashion-MNIST error matrices](results/confusions_fashion.png)
+
+| True | Predicted | PCA + logreg | CNN |
+|---|---|---|---|
+| shirt | T-shirt/top | 149 | 99 |
+| pullover | coat | 141 | 71 |
+| shirt | pullover | 127 | 32 |
+| shirt | coat | 112 | 45 |
+| coat | pullover | 112 | 28 |
+| pullover | shirt | 111 | 99 |
+| coat | shirt | 110 | 113 |
+| T-shirt/top | shirt | 97 | 96 |
+| dress | shirt | 60 | 18 |
+| T-shirt/top | dress | 59 | 24 |
+
+- PCA + logistic regression makes 1,716 errors and the CNN 963. Eight of the baseline's ten most common mistakes are between the four upper-body classes (T-shirt/top, pullover, coat, shirt).
+- Unlike on MNIST, the CNN does not fix all of them. It helps a lot on some pairs (shirt read as pullover: 127 to 32, sandal read as sneaker: 59 to 8) but barely on others (T-shirt/top read as shirt: 97 to 96), and coat is mistaken for shirt (110 to 113) and dress (37 to 58) slightly more often.
+- Shirt is involved in most of the CNN's remaining errors, in both directions, which fits it having the lowest per-class accuracy above.

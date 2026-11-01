@@ -121,3 +121,33 @@ def test_results_stem_keeps_mnist_names():
 
     assert results_stem("learning_curve", "mnist") == "learning_curve"
     assert results_stem("confusions", "fashion") == "confusions_fashion"
+
+
+def test_shift_moves_pixels_and_fills_zeros():
+    from src.robustness import shift_images
+
+    X = np.zeros((40, 28, 28), np.float32)
+    X[:, 10:18, 10:18] = 1.0  # a block well inside the image
+    shifted = shift_images(X, 3, seed=0)
+    assert shifted.shape == X.shape
+    assert (shifted.sum(axis=(1, 2)) == X.sum(axis=(1, 2))).all()  # nothing falls off
+    assert not np.array_equal(shifted, X)
+    assert np.array_equal(shift_images(X, 0), X)
+    assert np.array_equal(shift_images(X, 3, seed=0), shifted)  # same seed, same shifts
+
+
+def test_shift_drops_pixels_pushed_off_the_edge():
+    from src.robustness import shift_images
+
+    X = np.ones((20, 28, 28), np.float32)
+    assert (shift_images(X, 4).sum(axis=(1, 2)) == 28 * 24).all()
+
+
+def test_noise_stays_in_pixel_range():
+    from src.robustness import add_noise
+
+    X, _ = make_digits(n=20)
+    noisy = add_noise(X, 0.5, seed=1)
+    assert noisy.min() >= 0 and noisy.max() <= 1
+    assert np.array_equal(add_noise(X, 0.5, seed=1), noisy)
+    assert np.allclose(add_noise(X, 0.0), np.clip(X, 0, 1))

@@ -2,7 +2,8 @@
 python -m src.train --model {logreg,kmeans,mlp_torch,mlp_tf,cnn_torch,cnn_tf}
 
 Each runner prints its results and returns {"accuracy", "confusion_matrix"}
-on the test set (accuracy is the cluster-label agreement for k-means).
+on the test set (accuracy is the cluster-label agreement for k-means). The
+PyTorch runners also return the trained "model".
 """
 import argparse
 
@@ -109,7 +110,7 @@ def _train_torch_model(model, train_dl, test_dl, device, epochs, lr):
 
     cm = confusion_matrix(np.concatenate(targets), np.concatenate(preds))
     print(f"confusion matrix:\n{cm}")
-    return {"accuracy": acc, "confusion_matrix": cm}
+    return {"accuracy": acc, "confusion_matrix": cm, "model": model}
 
 
 def run_mlp_tf(X_train, y_train, X_test, y_test, epochs=15, lr=1e-3, batch_size=128):

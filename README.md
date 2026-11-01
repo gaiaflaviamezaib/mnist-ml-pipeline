@@ -48,6 +48,7 @@ python -m src.robustness
 python -m src.train --model cnn_torch --dataset fashion
 python -m src.learning_curve --dataset fashion
 python -m src.compare_errors --dataset fashion
+python -m src.robustness --dataset fashion
 ```
 
 Every run is seeded (`--seed`, default 0), so rerunning a command gives the same numbers. Run the test suite with `python -m pytest`.
@@ -193,3 +194,22 @@ Same comparison as for MNIST (`python -m src.compare_errors --dataset fashion`).
 - PCA + logistic regression makes 1,716 errors and the CNN 963. Eight of the baseline's ten most common mistakes are between the four upper-body classes (T-shirt/top, pullover, coat, shirt).
 - Unlike on MNIST, the CNN does not fix all of them. It helps a lot on some pairs (shirt read as pullover: 127 to 32, sandal read as sneaker: 59 to 8) but barely on others (T-shirt/top read as shirt: 97 to 96), and coat is mistaken for shirt (110 to 113) and dress (37 to 58) slightly more often.
 - Shirt is involved in most of the CNN's remaining errors, in both directions, which fits it having the lowest per-class accuracy above.
+
+### Shifted and noisy clothes
+
+Same perturbations as for MNIST (`python -m src.robustness --dataset fashion`). Numbers are in [results/robustness_fashion.csv](results/robustness_fashion.csv).
+
+![Fashion-MNIST robustness](results/robustness_fashion.png)
+
+| Perturbation | PCA + logreg | CNN |
+|---|---|---|
+| none | 82.8% | 90.4% |
+| shift 1 px | 76.9% | 87.6% |
+| shift 2 px | 62.2% | 80.6% |
+| shift 4 px | 37.0% | 48.1% |
+| noise 0.1 | 80.6% | 80.8% |
+| noise 0.3 | 63.4% | 31.4% |
+| noise 0.5 | 47.2% | 13.0% |
+
+- Shifts look like MNIST: both models drop, the CNN a bit less, and it stays ahead at every shift.
+- Noise is the opposite of MNIST. The CNN already loses 10 points at sigma 0.1, and at 0.5 it is at 13%, barely above guessing (10%). The baseline keeps 47%. My guess is that clothes have textures and fine patterns the CNN learned to rely on, so noise looks like texture to it, while 50 PCA components only keep the overall shape. I have not checked this.

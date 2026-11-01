@@ -41,6 +41,9 @@ python -m src.learning_curve
 # Where PCA + logreg goes wrong vs. the CNN (saved to results/)
 python -m src.compare_errors
 
+# Accuracy on shifted and noisy test digits (saved to results/)
+python -m src.robustness
+
 # Any model or script on Fashion-MNIST instead
 python -m src.train --model cnn_torch --dataset fashion
 python -m src.learning_curve --dataset fashion
@@ -64,7 +67,8 @@ src/
   train.py            # CLI entry point, shared eval/reporting
   learning_curve.py   # accuracy vs. training-set size for each model
   compare_errors.py   # most frequent confusions, PCA + logreg vs. CNN
-results/              # learning-curve and confusion CSVs and plots
+  robustness.py       # accuracy on shifted and noisy test digits
+results/              # learning-curve, confusion and robustness CSVs and plots
 notebooks/
   01_eda_pca.ipynb     # digit visualization + PCA scree plot + k-means cluster purity
 ```
@@ -117,6 +121,25 @@ Error matrices (correct predictions left out) for PCA + logistic regression and 
 | 7 | 2 | 29 | 3 |
 
 The baseline's 10 most common mistakes add up to 349 errors (out of 883); the CNN makes 33 on the same pairs. As expected, they are mostly 4/9 and the 3/5/8 group. These digits share most of their pixels and differ in small local details (whether the top of a 4 is closed, which loops of an 8 are open), which 50 global PCA components probably blur, while convolution filters look at local strokes. 9 read as 4 is still the CNN's most frequent mistake.
+
+## Shifted and noisy digits
+
+Both models trained once on the clean training set (`--seed 0`), then scored on perturbed copies of the test set. Shift moves every image by k pixels up, down, left or right (random per image, zeros fill the gap). Noise adds Gaussian noise with standard deviation sigma to every pixel, clipped to [0, 1]. Numbers are in [results/robustness.csv](results/robustness.csv).
+
+![Robustness](results/robustness.png)
+
+| Perturbation | PCA + logreg | CNN |
+|---|---|---|
+| none | 91.2% | 98.9% |
+| shift 1 px | 83.7% | 98.2% |
+| shift 2 px | 59.5% | 94.4% |
+| shift 4 px | 18.4% | 59.2% |
+| noise 0.1 | 90.5% | 98.7% |
+| noise 0.3 | 77.3% | 91.5% |
+| noise 0.5 | 57.9% | 56.0% |
+
+- A 2-pixel shift costs the baseline about 32 points but the CNN only 4.5. PCA components are tied to fixed pixel positions, while the CNN's filters and pooling layers tolerate small moves. Neither model saw shifted digits in training, and at 4 pixels the CNN drops to 59% too.
+- Noise hurts the CNN less up to sigma 0.3, but at 0.5 the baseline is slightly ahead (57.9% vs 56.0%). Projecting onto 50 PCA components probably throws away most of the noise, which is spread over all 784 pixels, while the CNN was only ever trained on clean images.
 
 ## Fashion-MNIST
 
